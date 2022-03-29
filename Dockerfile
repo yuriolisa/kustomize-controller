@@ -31,18 +31,15 @@ COPY internal/ internal/
 ENV CGO_ENABLED=0
 RUN xx-go build -a -o kustomize-controller main.go
 
-FROM alpine:3.15
+FROM registry.access.redhat.com/ubi8/ubi
 
-RUN apk add --no-cache ca-certificates tini git openssh-client gnupg
+ARG TARGETPLATFORM
+RUN yum install -y ca-certificates git
 
 COPY --from=builder /workspace/kustomize-controller /usr/local/bin/
-
-# Create minimal nsswitch.conf file to prioritize the usage of /etc/hosts over DNS queries.
-# https://github.com/gliderlabs/docker-alpine/issues/367#issuecomment-354316460
-RUN [ ! -e /etc/nsswitch.conf ] && echo 'hosts: files dns' > /etc/nsswitch.conf
 
 USER 65534:65534
 
 ENV GNUPGHOME=/tmp
 
-ENTRYPOINT [ "/sbin/tini", "--", "kustomize-controller" ]
+ENTRYPOINT [ "kustomize-controller" ]
